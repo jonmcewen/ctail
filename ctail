@@ -1,17 +1,4 @@
 #!/bin/bash
-
-###############################################################################
-# Author: Radu Cotescu <radu@cotescu.com>                                     #
-#                                                                             #
-# ctail is a small configurable Bash script which can colour log entries      #
-# outputted through tail. It actually wraps tail, piping its output through   #
-# an awk script that colorizes the output according to log severity levels.   #
-#                                                                             #
-# NOTE: On Mac OS X you must replace line 1 of the script with the location   #
-# where you have installed Bash 4. Bash 3 (which comes by default on Mac OS X)#
-# does not support associative arrays.                                        #
-###############################################################################
-
 TAIL=`which tail`
 AWK=`which awk`
 if [[ -z $TAIL ]]; then
@@ -26,9 +13,9 @@ fi
 CWD=`dirname $0`
 
 declare -A log
-log["INFO"]="BWhite"
 log["ERROR"]="BRed"
 log["WARN"]="BYellow"
+log["INFO"]="BWhite"
 log["DEBUG"]="BGreen"
 
 if [[ -f "$CWD/ctail.config" ]]; then
@@ -74,8 +61,11 @@ colours["BICyan"]="\033[1;96m"
 colours["BIWhite"]="\033[1;97m"
 
 AWK_EXPRESSION=""
+NOT_EXP=""
 for i in "${!log[@]}"; do
-    AWK_EXPRESSION="/$i/ {print \"${colours[${log[$i]}]}\" \$0 \"\033[39m\"} $AWK_EXPRESSION"
+    AWK_EXPRESSION="$AWK_EXPRESSION $NOT_EXP /$i/ {print \"${colours[${log[$i]}]}\" \$0 \"\033[39m\"} "
+    NOT_EXP="! /$i/ && $NOT_EXP"
 done
-
+AWK_EXPRESSION="$AWK_EXPRESSION $NOT_EXP /.*/ {print \$0}"
 $TAIL "$@" | $AWK "$AWK_EXPRESSION"
+
